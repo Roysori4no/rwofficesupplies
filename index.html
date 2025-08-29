@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Office Supplies Inventory & Consumption Tracker (HTML+CSS+JS)</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --border: #e5e7eb;
+      --brand: #111827;
+      --radius: 16px;
+      --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06);
+      --blue: #3b82f6;
+      --green: #10b981;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --violet: #8b5cf6;
+      --cyan: #06b6d4;
+      --lime: #84cc16;
+    }
+    * { box-sizing: border-box }
+    html, body { height: 100% }
+    body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji"; color: var(--ink); background: var(--bg); }
+    header { position: sticky; top: 0; z-index: 10; backdrop-filter: saturate(160%) blur(6px); background: rgba(255,255,255,.8); border-bottom: 1px solid var(--border); }
+    .container { max-width: 1120px; margin: 0 auto; padding: 1rem 1.25rem; }
+    h1 { font-size: clamp(1.125rem, 2vw, 1.5rem); margin: 0; font-weight: 800 }
+    nav button { border: 0; border-radius: 999px; padding: .5rem .9rem; font-weight: 600; background: transparent; cursor: pointer }
+    nav button.active { background: #111827; color: #fff }
+    nav button:not(.active):hover { background: #e5e7eb }
+    main.container { padding-top: 1rem; padding-bottom: 2rem }
+    .row { display: grid; gap: .75rem }
+    .row.cols-4 { grid-template-columns: repeat(1, minmax(0,1fr)) }
+    @media (min-width: 640px) { .row.cols-2-s { grid-template-columns: repeat(2, minmax(0,1fr)) } }
+    @media (min-width: 768px) { .row.cols-3-m { grid-template-columns: repeat(3, minmax(0,1fr)) } }
+    @media (min-width: 1024px) { .row.cols-2, .row.cols-4 { grid-template-columns: repeat(2, minmax(0,1fr)) } }
+    @media (min-width: 1280px) { .row.cols-4 { grid-template-columns: repeat(4, minmax(0,1fr)) } }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1rem }
+    .card h3 { margin: 0 0 .25rem; font-size: 1rem }
+    .muted { color: var(--muted) }
+    .kpi .value { font-size: 1.6rem; font-weight: 800; margin-top: .2rem }
+    .table-wrap { overflow-x: auto }
+    table { width: 100%; border-collapse: collapse; font-size: .95rem }
+    thead tr { border-bottom: 1px solid var(--border) }
+    th, td { text-align: left; padding: .6rem .9rem }
+    tbody tr { border-bottom: 1px solid var(--border) }
+    tbody tr:hover { background: #f9fafb }
+    td.num, th.num { text-align: right }
+    .chip { display: inline-block; padding: .18rem .5rem; border-radius: 999px; font-size: .75rem; font-weight: 700 }
+    .chip.red { background: #fee2e2; color: #991b1b }
+    .chip.green { background: #dcfce7; color: #065f46 }
+    .chip.amber { background: #fef3c7; color: #92400e }
+    .form-grid { display: grid; gap: .75rem; grid-template-columns: repeat(1, minmax(0,1fr)) }
+    @media (min-width: 768px) { .form-grid { grid-template-columns: repeat(6, minmax(0,1fr)) } }
+    label { display: block; font-size: .75rem; color: var(--muted) }
+    input[type="text"], input[type="date"], input[type="number"], select { width: 100%; padding: .6rem .7rem; border-radius: 12px; border: 1px solid var(--border); background: #fff }
+    input[disabled], select[disabled] { background: #f3f4f6 }
+    .right { display: flex; justify-content: flex-end }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; border-radius: 12px; border: 1px solid var(--border); padding: .55rem .9rem; background: #fff; cursor: pointer; font-weight: 600 }
+    .btn:hover { background: #f3f4f6 }
+    .btn.primary { background: var(--brand); color: #fff; border-color: var(--brand) }
+    .range { display: grid; gap: .5rem }
+    @media (min-width: 640px) { .range { grid-template-columns: repeat(5, minmax(0,1fr)); align-items: end } }
+    .range .quick { grid-column: 1 / -1; display: flex; gap: .5rem; flex-wrap: wrap }
+    @media (min-width: 640px) { .range .quick { grid-column: 3 / -1; justify-content: flex-end } }
+    .chart { height: 320px }
+    .bars svg { width: 100%; height: 100% }
+    .legend { display: flex; gap: .75rem; flex-wrap: wrap; font-size: .85rem; margin-top: .5rem }
+    .legend i { width: .9rem; height: .9rem; border-radius: 3px; display: inline-block }
+    .pie { --g: conic-gradient(var(--c1) var(--p1), var(--c2) 0 var(--p2), var(--c3) 0 var(--p3), var(--c4) 0 var(--p4), var(--c5) 0 var(--p5), var(--c6) 0 100%);
+           background: var(--g); border-radius: 50%; width: 100%; height: 100%; position: relative }
+    .pie::after { content: ""; position: absolute; inset: 18% 18%; background: #fff; border-radius: 50% }
+    footer { text-align: center; color: var(--muted); font-size: .75rem; padding: 2rem 0 }
+    .header-flex { display: flex; gap: .75rem; align-items: center; justify-content: space-between }
+    .tabbar { display: flex; gap: .4rem; flex-wrap: wrap }
+    .site-badge{position:fixed;top:6px;left:12px;font-size:.8rem;color:var(--muted);z-index:20}
+  </style>
+</head>
+<body>
+  <div class="site-badge">This webpage is made by Roy Soriano</div>
+  <header>
+    <div class="container header-flex">
+      <h1>Office Supplies Inventory & Consumption Tracker</h1>
+      <nav class="tabbar">
+        <button class="tab active" data-tab="dashboard">Dashboard</button>
+        <button class="tab" data-tab="transactions">Transactions</button>
+        <button class="tab" data-tab="inventory">Inventory</button>
+        <button class="tab" data-tab="masterdata">Master Data</button>
+      </nav>
+    </div>
+  </header>
+  <main class="container">
+    <section class="range card" id="range">
+      <div>
+        <label>From</label>
+        <input type="date" id="fromDate">
+      </div>
+      <div>
+        <label>To</label>
+        <input type="date" id="toDate">
+      </div>
+      <div class="quick">
+        <button class="btn" data-quick="7">Last 7 days</button>
+        <button class="btn" data-quick="30">Last 30 days</button>
+        <button class="btn" data-quick="ytd">Year to date</button>
+      </div>
+      <div class="right" style="grid-column: 1 / -1; gap: .5rem; flex-wrap: wrap">
+        <button class="btn" id="exportJson">Export JSON</button>
+        <button class="btn" id="importJson">Import JSON</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none" />
+        <button class="btn" id="clearAll">Clear All Data</button>
+      </div>
+    </section>
+    <section id="view-dashboard" class="view">
+      <div class="row cols-4">
+        <div class="card kpi"><div class="muted">Total Consumed</div><div class="value" id="kpi-total-consume">0</div><div class="muted">Units across all items</div></div>
+        <div class="card kpi"><div class="muted">Total Restocked</div><div class="value" id="kpi-total-restock">0</div><div class="muted">Units received</div></div>
+        <div class="card kpi"><div class="muted">Top Department</div><div class="value" id="kpi-top-dept">—</div><div class="muted">Most consumption in range</div></div>
+        <div class="card kpi"><div class="muted">Top Item</div><div class="value" id="kpi-top-item">—</div><div class="muted">Most consumed item</div></div>
+      </div>
+      <div class="row cols-2" style="margin-top: 1rem">
+        <div class="card">
+          <h3>Consumption by Department</h3>
+          <div class="chart bars" id="chart-dept"></div>
+          <div class="legend" id="legend-dept"></div>
+        </div>
+        <div class="card">
+          <h3>Consumption by Item (Share)</h3>
+          <div class="chart" style="display:grid; place-items:center">
+            <div class="pie" id="pie" style="max-width:280px; max-height:280px; aspect-ratio: 1 / 1"></div>
+          </div>
+          <div class="legend" id="legend-item"></div>
+        </div>
+      </div>
+    </section>
+    <section id="view-transactions" class="view" hidden>
+      <div class="card">
+        <div class="header-flex">
+          <h3>Log a Transaction</h3>
+          <div style="display:flex; gap:.5rem; align-items:center">
+            <button id="toggleTxFilters" class="btn">Filter</button>
+            <button id="exportCsv" class="btn">Export CSV</button>
+          </div>
+        </div>
+        <form id="txForm" class="form-grid" style="margin-top:.75rem">
+          <div style="grid-column: span 1">
+            <label>Date</label>
+            <input type="date" id="txDate" required>
+          </div>
+          <div style="grid-column: span 1">
+            <label>Type</label>
+            <select id="txType">
+              <option value="consume">Consume</option>
+              <option value="restock">Restock</option>
+            </select>
+          </div>
+          <div style="grid-column: span 2">
+            <label>Item</label>
+            <select id="txItem"></select>
+          </div>
+          <div style="grid-column: span 1">
+            <label>Department <span id="depLabelSuffix" class="muted">*</span></label>
+            <select id="txDept"></select>
+          </div>
+          <div style="grid-column: span 1">
+            <label>Quantity</label>
+            <input type="number" id="txQty" min="1" value="1" required>
+          </div>
+          <div style="grid-column: 1 / -1">
+            <label>Note</label>
+            <input type="text" id="txNote" placeholder="Optional">
+          </div>
+          <div style="grid-column: 1 / -1" class="right">
+            <button class="btn primary" type="submit">Add</button>
+          </div>
+        </form>
+      </div>
+      <div class="card" style="margin-top:1rem">
+        <h3>Recent Transactions</h3>
+        <div id="txFilters" class="form-grid" style="margin:.5rem 0; display:grid">
+          <div style="grid-column: span 1">
+            <label>From</label>
+            <input type="date" id="filterFrom">
+          </div>
+          <div style="grid-column: span 1">
+            <label>To</label>
+            <input type="date" id="filterTo">
+          </div>
+          <div style="grid-column: span 1">
+            <label>Type</label>
+            <select id="filterType">
+              <option value="">All</option>
+              <option value="consume">Consume</option>
+              <option value="restock">Restock</option>
+            </select>
+          </div>
+          <div style="grid-column: span 1">
+            <label>Item</label>
+            <select id="filterItem">
+              <option value="">All</option>
+            </select>
+          </div>
+          <div style="grid-column: span 1">
+            <label>Department</label>
+            <select id="filterDept">
+              <option value="">All</option>
+            </select>
+          </div>
+          <div style="grid-column: 1 / -1" class="right">
+            <button class="btn" id="resetTxFilters">Reset</button>
+            <button class="btn primary" id="applyTxFilters">Apply Filters</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="txTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Item</th>
+                <th>Department</th>
+                <th class="num">Qty</th>
+                <th>Note</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="txPager" class="right" style="margin-top:.5rem; gap:.5rem"></div>
+      </div>
+    </section>
+    <section id="view-inventory" class="view" hidden>
+      <div class="card">
+        <h3>Current Stock by Item</h3>
+        <div class="table-wrap">
+          <table id="invTable">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Unit</th>
+                <th class="num">On Hand</th>
+                <th class="num">Status</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="invPager" class="right" style="margin-top:.5rem; gap:.5rem"></div>
+      </div>
+    </section>
+    <section id="view-masterdata" class="view" hidden>
+      <div class="row cols-2-s" style="margin-top:.25rem">
+        <div class="card">
+          <h3>Items</h3>
+          <form id="addItemForm" class="form-grid" style="margin-top:.75rem">
+            <div style="grid-column: span 4">
+              <label>Item name</label>
+              <input type="text" id="itemName" placeholder="e.g. Binder Clips Medium" required>
+            </div>
+            <div style="grid-column: span 2">
+              <label>Unit</label>
+              <input type="text" id="itemUnit" value="pcs" required>
+            </div>
+            <div style="grid-column: 1 / -1" class="right">
+              <button class="btn primary" type="submit">Add Item</button>
+            </div>
+          </form>
+          <ul id="itemsList" class="muted" style="list-style:none; padding-left:0; margin-top: .75rem"></ul>
+          <div id="itemsPager" class="right" style="margin-top:.5rem; gap:.5rem"></div>
+        </div>
+        <div class="card">
+          <h3>Departments</h3>
+          <form id="addDeptForm" class="form-grid" style="margin-top:.75rem">
+            <div style="grid-column: span 4">
+              <label>Department name</label>
+              <input type="text" id="deptName" placeholder="e.g. Marketing" required>
+            </div>
+            <div style="grid-column: span 1; display:flex; align-items:end">
+              <button class="btn primary" type="submit" style="width:100%">Add</button>
+            </div>
+          </form>
+          <ul id="deptsList" class="muted" style="list-style:none; padding-left:0; margin-top: .75rem"></ul>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer><div>Data persists locally in your browser. Export CSV/JSON for backups.</div><div>This webpage is made for Richworld Infra Solutions Corp. only</div></footer>
+  <script>
+    const LS_KEY = 'officeSuppliesApp_v1_plain';
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+    const uid = () => Math.random().toString(36).slice(2, 9);
+    const fmt = n => new Intl.NumberFormat().format(n);
+    const todayOffset = (delta=0) => { const d = new Date(); d.setDate(d.getDate()+delta); return d.toISOString().slice(0,10) };
+    function loadState() { try { return JSON.parse(localStorage.getItem(LS_KEY)) } catch { return null } }
+    function saveState(state) { try { localStorage.setItem(LS_KEY, JSON.stringify(state)) } catch {} }
+    function clearStorage() { try { localStorage.removeItem(LS_KEY) } catch {} }
+
+    const seed = { items: [], departments: [], transactions: [] };
+
+    const persisted = loadState();
+    let items = persisted?.items ?? seed.items.slice();
+    let departments = persisted?.departments ?? seed.departments.slice();
+    let transactions = persisted?.transactions ?? seed.transactions.slice();
+
+    let itemsPage = 1;
+    const ITEMS_PER_PAGE = 10;
+
+    let txPage = 1;
+    const TX_PER_PAGE = 10;
+
+    let txFilter = { from: '', to: '', type: '', itemId: '', departmentId: '' };
+
+    let invPage = 1;
+    const INV_PER_PAGE = 10;
+
+    let rangeStart = todayOffset(-30);
+    let rangeEnd = todayOffset(0);
+
+    function init() {
+      $$('.tab').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+      $('#fromDate').value = rangeStart;
+      $('#toDate').value = rangeEnd;
+      $('#fromDate').addEventListener('change', e => { rangeStart = e.target.value; renderAll() });
+      $('#toDate').addEventListener('change', e => { rangeEnd = e.target.value; renderAll() });
+      $$('.range [data-quick]').forEach(b => b.addEventListener('click', () => {
+        const now = new Date();
+        if (b.dataset.quick === 'ytd') {
+          const y = new Date(now.getFullYear(), 0, 1);
+          rangeStart = y.toISOString().slice(0,10);
+          rangeEnd = now.toISOString().slice(0,10);
+        } else {
+          const days = Number(b.dataset.quick);
+          const s = new Date(); s.setDate(s.getDate()-days);
+          rangeStart = s.toISOString().slice(0,10);
+          rangeEnd = now.toISOString().slice(0,10);
+        }
+        $('#fromDate').value = rangeStart; $('#toDate').value = rangeEnd; renderAll();
+      }))
+      $('#exportJson').addEventListener('click', exportJSON);
+      $('#importJson').addEventListener('click', () => $('#importFile').click());
+      $('#importFile').addEventListener('change', importJSONFromFile);
+      $('#clearAll').addEventListener('click', clearAllData);
+      fillSelects();
+      $('#txDate').value = todayOffset(0);
+      $('#txType').addEventListener('change', onTypeChange);
+      onTypeChange();
+      $('#txForm').addEventListener('submit', onTxSubmit);
+      $('#exportCsv').addEventListener('click', exportCSV);
+      const toggle = $('#toggleTxFilters');
+      if (toggle) toggle.addEventListener('click', () => { const p = $('#txFilters'); if (p) p.style.display = (p.style.display === 'none' || p.style.display === '') ? 'grid' : 'none'; });
+      const applyBtn = $('#applyTxFilters');
+      if (applyBtn) applyBtn.addEventListener('click', () => {
+        txFilter.from = $('#filterFrom').value || '';
+        txFilter.to = $('#filterTo').value || '';
+        txFilter.type = $('#filterType').value || '';
+        txFilter.itemId = $('#filterItem').value || '';
+        txFilter.departmentId = $('#filterDept').value || '';
+        txPage = 1;
+        renderTxTable();
+      });
+      const resetBtn = $('#resetTxFilters');
+      if (resetBtn) resetBtn.addEventListener('click', () => {
+        $('#filterFrom').value = '';
+        $('#filterTo').value = '';
+        $('#filterType').value = '';
+        $('#filterItem').value = '';
+        $('#filterDept').value = '';
+        txFilter = { from: '', to: '', type: '', itemId: '', departmentId: '' };
+        txPage = 1;
+        renderTxTable();
+      });
+      const addItemForm = $('#addItemForm');
+      if (addItemForm) addItemForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const nameRaw = $('#itemName').value;
+        const unit = $('#itemUnit').value.trim();
+        const name = (nameRaw || '').trim();
+        if (!name || !unit) return;
+        const normalized = name.toLowerCase();
+        if (items.some(i => (i.name || '').trim().toLowerCase() === normalized)) { alert('Item already exists: ' + name + '.'); return; }
+        items = items.concat({ id: 'it-'+uid(), name, unit });
+        $('#itemName').value = '';
+        $('#itemUnit').value = 'pcs';
+        itemsPage = 1; invPage = 1;
+        persist(); fillSelects(); renderMasterLists(); renderAll();
+      });
+      const addDeptForm = $('#addDeptForm');
+      if (addDeptForm) addDeptForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = $('#deptName').value.trim();
+        if (!name) return;
+        departments = departments.concat({ id: 'dep-'+uid(), name });
+        $('#deptName').value = '';
+        persist(); fillSelects(); renderMasterLists(); renderAll();
+      });
+      renderMasterLists();
+      renderAll();
+    }
+
+    function switchTab(key) {
+      $$('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === key));
+      $$('.view').forEach(v => v.hidden = true);
+      $('#view-'+key).hidden = false;
+    }
+
+    function persist() { saveState({ items, departments, transactions }) }
+
+    function fillSelects() {
+      const itemSel = $('#txItem');
+      itemSel.innerHTML = items.map(i => `<option value="${i.id}">${escapeHtml(i.name)}</option>`).join('');
+      const depSel = $('#txDept');
+      depSel.innerHTML = '<option value="">Select...</option>' + departments.map(d => `<option value="${d.id}">${escapeHtml(d.name)}</option>`).join('');
+      const fItem = $('#filterItem');
+      if (fItem) {
+        const cur = fItem.value;
+        fItem.innerHTML = '<option value="">All</option>' + items.map(i => `<option value="${i.id}">${escapeHtml(i.name)}</option>`).join('');
+        if (cur && items.some(i=>i.id===cur)) fItem.value = cur; else fItem.value = '';
+      }
+      const fDept = $('#filterDept');
+      if (fDept) {
+        const curD = fDept.value;
+        fDept.innerHTML = '<option value="">All</option>' + departments.map(d => `<option value="${d.id}">${escapeHtml(d.name)}</option>`).join('');
+        if (curD && departments.some(d=>d.id===curD)) fDept.value = curD; else fDept.value = '';
+      }
+    }
+
+    function onTypeChange() {
+      const isConsume = $('#txType').value === 'consume';
+      $('#txDept').disabled = !isConsume;
+      $('#depLabelSuffix').textContent = isConsume ? '*' : '(optional)';
+    }
+
+    function onTxSubmit(e) {
+      e.preventDefault();
+      const date = $('#txDate').value;
+      const type = $('#txType').value;
+      const itemId = $('#txItem').value;
+      const departmentId = $('#txDept').value || null;
+      const quantity = Number($('#txQty').value);
+      const note = $('#txNote').value.trim();
+      if (!itemId || !Number.isFinite(quantity) || quantity <= 0) return;
+      if (type === 'consume' && !departmentId) { alert('Please select a department for consumption.'); return }
+      if (type === 'consume') {
+        const stocks = stockByItem();
+        const onHand = Number(stocks[itemId] || 0);
+        if (onHand <= 0) { alert('Cannot consume this item because current stock is 0. Please restock first.'); return; }
+        if (quantity > onHand) { alert('Insufficient stock. Available: ' + onHand + '. You attempted to consume: ' + quantity + '.'); return; }
+      }
+      const tx = { id: 't-'+uid(), date, type, itemId, departmentId: type === 'consume' ? departmentId : null, quantity, note };
+      transactions = [tx, ...transactions];
+      $('#txQty').value = 1; $('#txNote').value = '';
+      persist(); renderAll(); switchTab('transactions');
+    }
+
+    function deleteTx(id) {
+      transactions = transactions.filter(t => t.id !== id);
+      persist(); renderAll();
+    }
+
+    function csvEscape(s) { if (s == null) return ''; const v = String(s); return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v }
+
+    function exportCSV() {
+      const headers = ['id','date','type','item','department','quantity','note'];
+      const itemMap = Object.fromEntries(items.map(i => [i.id, i]));
+      const depMap = Object.fromEntries(departments.map(d => [d.id, d]));
+      const rows = transactions.map(t => [
+        t.id,
+        t.date,
+        t.type,
+        t.itemId ? (itemMap[t.itemId]?.name || t.itemId) : '',
+        t.departmentId ? (depMap[t.departmentId]?.name || t.departmentId) : '',
+        t.quantity,
+        (t.note||'').replace(/\n/g,' ')
+      ]);
+      const csv = [headers, ...rows].map(r => r.map(csvEscape).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `office-supplies-transactions-${new Date().toISOString().slice(0,10)}.csv`;
+      a.click(); URL.revokeObjectURL(url);
+    }
+
+    function filteredTx() {
+      const s = new Date(rangeStart);
+      const e = new Date(rangeEnd); e.setHours(23,59,59,999);
+      return transactions.filter(t => { const d = new Date(t.date); return d >= s && d <= e });
+    }
+
+    function stockByItem() {
+      const map = Object.fromEntries(items.map(i => [i.id, 0]));
+      for (const t of transactions) {
+        if (!t.itemId) continue;
+        if (!(t.itemId in map)) map[t.itemId] = 0;
+        if (t.type === 'restock') map[t.itemId] += Number(t.quantity||0);
+        if (t.type === 'consume') map[t.itemId] -= Number(t.quantity||0);
+      }
+      return map;
+    }
+
+    function consumedByDept() {
+      const tx = filteredTx();
+      const acc = Object.fromEntries(departments.map(d => [d.id, 0]));
+      for (const t of tx) if (t.type==='consume' && t.departmentId) acc[t.departmentId] = (acc[t.departmentId]||0) + Number(t.quantity||0);
+      const depMap = Object.fromEntries(departments.map(d => [d.id, d]));
+      return Object.entries(acc).map(([depId, qty]) => ({ depId, department: depMap[depId]?.name || depId, quantity: qty }));
+    }
+
+    function consumedByItem() {
+      const tx = filteredTx();
+      const acc = {};
+      for (const t of tx) if (t.type==='consume' && t.itemId) acc[t.itemId] = (acc[t.itemId]||0) + Number(t.quantity||0);
+      const itemMap = Object.fromEntries(items.map(i => [i.id, i]));
+      return Object.entries(acc).map(([itemId, qty]) => ({ itemId, item: itemMap[itemId]?.name || itemId, quantity: qty }));
+    }
+
+    function kpis() {
+      const tx = filteredTx();
+      const totalConsume = tx.filter(t=>t.type==='consume').reduce((s,t)=>s+Number(t.quantity||0),0);
+      const totalRestock = tx.filter(t=>t.type==='restock').reduce((s,t)=>s+Number(t.quantity||0),0);
+      const topDept = consumedByDept().slice().sort((a,b)=>b.quantity-a.quantity)[0];
+      const topItem = consumedByItem().slice().sort((a,b)=>b.quantity-a.quantity)[0];
+      return { totalConsume, totalRestock, topDept: topDept ? `${topDept.department} (${fmt(topDept.quantity)})` : '—', topItem: topItem ? `${topItem.item} (${fmt(topItem.quantity)})` : '—' };
+    }
+
+    function renderAll() {
+      const k = kpis();
+      $('#kpi-total-consume').textContent = fmt(k.totalConsume);
+      $('#kpi-total-restock').textContent = fmt(k.totalRestock);
+      $('#kpi-top-dept').textContent = k.topDept;
+      $('#kpi-top-item').textContent = k.topItem;
+      renderTxTable();
+      renderInventoryTable();
+      renderDeptBars();
+      renderItemPie();
+      persist();
+    }
+
+    function getFilteredTransactions() {
+      let list = transactions.slice();
+      const f = txFilter;
+      if (f.from) { const s = new Date(f.from); list = list.filter(t => new Date(t.date) >= s) }
+      if (f.to) { const e = new Date(f.to); e.setHours(23,59,59,999); list = list.filter(t => new Date(t.date) <= e) }
+      if (f.type) list = list.filter(t => t.type === f.type);
+      if (f.itemId) list = list.filter(t => t.itemId === f.itemId);
+      if (f.departmentId) list = list.filter(t => t.departmentId === f.departmentId);
+      return list;
+    }
+
+    function renderTxTable() {
+      const itemMap = Object.fromEntries(items.map(i => [i.id, i]));
+      const depMap = Object.fromEntries(departments.map(d => [d.id, d]));
+      const tbody = $('#txTable tbody');
+      const src = getFilteredTransactions();
+      const totalPages = Math.max(1, Math.ceil(src.length / TX_PER_PAGE));
+      if (txPage > totalPages) txPage = totalPages;
+      if (txPage < 1) txPage = 1;
+      const start = (txPage - 1) * TX_PER_PAGE;
+      const end = start + TX_PER_PAGE;
+      const pageTx = src.slice(start, end);
+      tbody.innerHTML = pageTx.map(t => {
+        const itemCell = t.itemId ? (itemMap[t.itemId]?.name || t.itemId) : '—';
+        const deptCell = t.departmentId ? (depMap[t.departmentId]?.name || t.departmentId) : '—';
+        return `
+          <tr>
+            <td>${escapeHtml(t.date)}</td>
+            <td>${t.type === 'consume' ? '<span class="chip red">consume</span>' : '<span class="chip green">restock</span>'}</td>
+            <td>${escapeHtml(itemCell)}</td>
+            <td>${escapeHtml(deptCell)}</td>
+            <td class="num">${fmt(t.quantity)}</td>
+            <td title="${escapeHtml(t.note||'')}">${escapeHtml(t.note||'')}</td>
+            <td><button class="btn" data-del="${t.id}">Delete</button></td>
+          </tr>
+        `;
+      }).join('');
+      $$('#txTable [data-del]').forEach(b => b.addEventListener('click', () => deleteTx(b.dataset.del)));
+      const pager = $('#txPager');
+      if (src.length <= TX_PER_PAGE) {
+        pager.innerHTML = '';
+      } else {
+        pager.innerHTML = `
+          <button class="btn" data-tx-prev ${txPage === 1 ? 'disabled' : ''}>Previous</button>
+          <span class="muted" style="display:inline-flex; align-items:center; padding:0 .5rem">Page ${txPage} of ${totalPages}</span>
+          <button class="btn" data-tx-next ${txPage === totalPages ? 'disabled' : ''}>Next</button>
+        `;
+        const prevBtn = pager.querySelector('[data-tx-prev]');
+        const nextBtn = pager.querySelector('[data-tx-next]');
+        prevBtn && prevBtn.addEventListener('click', () => { if (txPage > 1) { txPage--; renderTxTable(); } });
+        nextBtn && nextBtn.addEventListener('click', () => { if (txPage < totalPages) { txPage++; renderTxTable(); } });
+      }
+    }
+
+    function renderInventoryTable() {
+      const map = stockByItem();
+      const tbody = $('#invTable tbody');
+      const totalPages = Math.max(1, Math.ceil(items.length / INV_PER_PAGE));
+      if (invPage > totalPages) invPage = totalPages;
+      if (invPage < 1) invPage = 1;
+      const start = (invPage - 1) * INV_PER_PAGE;
+      const end = start + INV_PER_PAGE;
+      const pageItems = items.slice(start, end);
+      tbody.innerHTML = pageItems.map(i => {
+        const onHand = map[i.id] ?? 0;
+        const low = onHand <= 5;
+        return `
+          <tr>
+            <td>${escapeHtml(i.name)}</td>
+            <td>${escapeHtml(i.unit)}</td>
+            <td class="num">${fmt(onHand)}</td>
+            <td class="num">${low ? '<span class="chip amber">Low</span>' : '<span class="chip green">OK</span>'}</td>
+          </tr>
+        `;
+      }).join('');
+      const pager = $('#invPager');
+      if (items.length <= INV_PER_PAGE) {
+        pager.innerHTML = '';
+      } else {
+        pager.innerHTML = `
+          <button class="btn" data-inv-prev ${invPage === 1 ? 'disabled' : ''}>Previous</button>
+          <span class="muted" style="display:inline-flex; align-items:center; padding:0 .5rem">Page ${invPage} of ${totalPages}</span>
+          <button class="btn" data-inv-next ${invPage === totalPages ? 'disabled' : ''}>Next</button>
+        `;
+        const prevBtn = pager.querySelector('[data-inv-prev]');
+        const nextBtn = pager.querySelector('[data-inv-next]');
+        prevBtn && prevBtn.addEventListener('click', () => { if (invPage > 1) { invPage--; renderInventoryTable(); } });
+        nextBtn && nextBtn.addEventListener('click', () => { if (invPage < totalPages) { invPage++; renderInventoryTable(); } });
+      }
+    }
+
+    const COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#84cc16'];
+
+        function renderDeptBars() {
+      const data = consumedByDept();
+      const totalQty = data.reduce((s, d) => s + Number(d.quantity || 0), 0);
+      const pctData = data.map(d => ({
+        ...d,
+        pct: totalQty ? (Number(d.quantity || 0) / totalQty) * 100 : 0
+      }));
+
+      const pad = 40; // space for y-axis labels
+      const w = $('#chart-dept').clientWidth || 500;
+      const h = $('#chart-dept').clientHeight || 320;
+      const usableH = h - 90; // top & bottom padding
+      const barW = (w - pad * 2) / (pctData.length || 1);
+
+      const svg = [`<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">`];
+
+      // Y-axis gridlines and labels at 0/25/50/75/100%
+      const ticks = [0, 25, 50, 75, 100];
+      ticks.forEach(t => {
+        const y = (h - 30) - (usableH * (t / 100));
+        svg.push(`<line x1="${pad}" y1="${y}" x2="${w - pad}" y2="${y}" stroke="#e5e7eb"/>`);
+        svg.push(`<text x="${pad - 6}" y="${y + 4}" font-size="11" text-anchor="end" fill="#64748b">${t}%</text>`);
+      });
+
+      // Bars
+      pctData.forEach((d, i) => {
+        const bh = usableH * (d.pct / 100);
+        const x = pad + i * barW + barW * 0.1;
+        const y = (h - 30) - bh;
+        const rectW = barW * 0.8;
+        svg.push(`<rect x="${x}" y="${y}" width="${rectW}" height="${bh}" rx="6" fill="${COLORS[i % COLORS.length]}"/>`);
+
+        // Department label (x-axis)
+        const textY = h - 8;
+        svg.push(`<text x="${x + rectW / 2}" y="${textY}" font-size="11" text-anchor="middle" fill="#334155">${escapeHtml(d.department)}</text>`);
+
+        // Percentage label on top of each bar
+        svg.push(`<text x="${x + rectW / 2}" y="${y - 4}" font-size="11" text-anchor="middle" fill="#334155">${(d.pct).toFixed(1)}%</text>`);
+      });
+
+      svg.push('</svg>');
+      $('#chart-dept').innerHTML = svg.join('');
+
+      // Legend with percentages
+      $('#legend-dept').innerHTML = pctData.map((d, i) =>
+        `<span><i style="background:${COLORS[i % COLORS.length]}"></i>${escapeHtml(d.department)} (${d.pct.toFixed(1)}%)</span>`
+      ).join('');
+    }
+
+    function renderItemPie() {
+      const data = consumedByItem();
+      const total = data.reduce((s,d)=>s+d.quantity,0);
+      if (!total || data.length === 0) {
+        const pie = $('#pie');
+        pie.style = 'max-width:280px; max-height:280px; aspect-ratio:1/1; background:#f3f4f6; border-radius:50%';
+        $('#legend-item').innerHTML = '';
+        return;
+      }
+      let acc = 0, stops = [];
+      const colors = [];
+      const legend = [];
+      data.forEach((d,i)=>{
+        const pct = d.quantity/total;
+        const start = acc*100; acc += pct; const end = acc*100;
+        stops.push(`var(--c${i+1}) ${start}% ${end}%`);
+        const color = COLORS[i%COLORS.length]; colors.push(`--c${i+1}:${color}`);
+        legend.push(`<span><i style="background:${color}"></i>${escapeHtml(d.item)} (${fmt(d.quantity)})</span>`);
+      });
+      const pie = $('#pie');
+      pie.style = `max-width:280px; max-height:280px; aspect-ratio:1/1; ${colors.join(';')}; --g: conic-gradient(${stops.join(', ')});`;
+      $('#legend-item').innerHTML = legend.join('');
+    }
+
+    function renderMasterLists() {
+      const totalPages = Math.max(1, Math.ceil(items.length / ITEMS_PER_PAGE));
+      if (itemsPage > totalPages) itemsPage = totalPages;
+      if (itemsPage < 1) itemsPage = 1;
+      const start = (itemsPage - 1) * ITEMS_PER_PAGE;
+      const end = start + ITEMS_PER_PAGE;
+      const pageItems = items.slice(start, end);
+      $('#itemsList').innerHTML = pageItems.map(i => `
+        <li style="padding:.5rem .25rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center">
+          <span><strong>${escapeHtml(i.name)}</strong><br><span class=\"muted\">${escapeHtml(i.unit)} • ID: ${escapeHtml(i.id)}</span></span>
+          <button class="btn" data-del-item="${i.id}">Delete</button>
+        </li>
+      `).join('');
+      const pager = $('#itemsPager');
+      if (items.length <= ITEMS_PER_PAGE) {
+        pager.innerHTML = '';
+      } else {
+        pager.innerHTML = `
+          <button class="btn" data-page-prev ${itemsPage === 1 ? 'disabled' : ''}>Previous</button>
+          <span class="muted" style="display:inline-flex; align-items:center; padding:0 .5rem">Page ${itemsPage} of ${totalPages}</span>
+          <button class="btn" data-page-next ${itemsPage === totalPages ? 'disabled' : ''}>Next</button>
+        `;
+        const prevBtn = pager.querySelector('[data-page-prev]');
+        const nextBtn = pager.querySelector('[data-page-next]');
+        prevBtn && prevBtn.addEventListener('click', () => { if (itemsPage > 1) { itemsPage--; renderMasterLists(); } });
+        nextBtn && nextBtn.addEventListener('click', () => { if (itemsPage < totalPages) { itemsPage++; renderMasterLists(); } });
+      }
+      $('#deptsList').innerHTML = departments.map(d => `
+        <li style="padding:.5rem .25rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center">
+          <span><strong>${escapeHtml(d.name)}</strong><br><span class="muted">ID: ${escapeHtml(d.id)}</span></span>
+          <button class="btn" data-del-dept="${d.id}">Delete</button>
+        </li>
+      `).join('');
+      $$('#itemsList [data-del-item]').forEach(b => b.addEventListener('click', () => { deleteItem(b.dataset.delItem); }));
+      $$('#deptsList [data-del-dept]').forEach(b => b.addEventListener('click', () => deleteDept(b.dataset.delDept)));
+    }
+
+    function exportJSON() {
+      const payload = { items, departments, transactions };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `office-supplies-data-${new Date().toISOString().slice(0,10)}.json`;
+      a.click(); URL.revokeObjectURL(url);
+    }
+
+    function importJSONFromFile(e) {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(String(reader.result));
+          if (!Array.isArray(data.items) || !Array.isArray(data.departments) || !Array.isArray(data.transactions)) { alert('Invalid JSON format. Expected keys: items, departments, transactions.'); return; }
+          items = data.items; departments = data.departments; transactions = data.transactions;
+          itemsPage = 1; txPage = 1; invPage = 1;
+          persist(); fillSelects(); renderMasterLists(); renderAll();
+          alert('Data imported successfully.');
+        } catch (err) { alert('Failed to parse JSON: ' + err); }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    }
+
+    function clearAllData() {
+      if (!confirm('This will erase all saved data and reset to EMPTY lists. Continue?')) return;
+      items = [];
+      departments = [];
+      transactions = [];
+      itemsPage = 1; txPage = 1; invPage = 1;
+      clearStorage();
+      persist(); fillSelects(); renderMasterLists(); renderAll();
+    }
+
+    function deleteItem(itemId) {
+      const uses = transactions.filter(t => t.itemId === itemId).length;
+      const item = items.find(i => i.id === itemId);
+      const name = item ? item.name : itemId;
+      if (!confirm(`Delete item "${name}"${uses ? ` (used in ${uses} transaction${uses>1?'s':''})` : ''}? Transactions will be kept but without an item.`)) return;
+      items = items.filter(i => i.id !== itemId);
+      transactions = transactions.map(t => t.itemId === itemId ? { ...t, itemId: null } : t);
+      persist(); fillSelects(); renderMasterLists(); renderAll();
+    }
+
+    function deleteDept(depId) {
+      const uses = transactions.filter(t => t.departmentId === depId).length;
+      const dep = departments.find(d => d.id === depId);
+      const name = dep ? dep.name : depId;
+      if (!confirm(`Delete department "${name}"${uses ? ` (used in ${uses} transaction${uses>1?'s':''})` : ''}? Transactions will be kept but without a department.`)) return;
+      departments = departments.filter(d => d.id !== depId);
+      transactions = transactions.map(t => t.departmentId === depId ? { ...t, departmentId: null } : t);
+      persist(); fillSelects(); renderMasterLists(); renderAll();
+    }
+
+    function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c])) }
+
+    init();
+  </script>
+</body>
+</html>
